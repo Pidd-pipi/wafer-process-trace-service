@@ -23,7 +23,9 @@ func newOpsCache(maxSize int) *OpsCache {
 	return &OpsCache{entries: map[string]opsCacheEntry{}, maxSize: maxSize}
 }
 
-// Get returns a deep copy of the cached record, or false when absent.
+// Get returns a deep copy of the cached record, or false when absent. The
+// copy is independent of the cached entry, so mutating it does not affect the
+// cache.
 func (c *OpsCache) Get(id string) (OpsRecord, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -31,8 +33,7 @@ func (c *OpsCache) Get(id string) (OpsRecord, bool) {
 	if !ok {
 		return OpsRecord{}, false
 	}
-	record := entry.value
-	return record, true
+	return entry.value.Clone(), true
 }
 
 // Put inserts or replaces a record and enforces the size limit.
@@ -41,17 +42,18 @@ func (c *OpsCache) Put(id string, value OpsRecord) {
 	defer c.mu.Unlock()
 	c.sequence++
 	c.entries[id] = opsCacheEntry{value: value.Clone(), inserted: c.sequence}
+	if len(c.entries) > c.maxSize {
+		c.evictOldestLocked()
+	}
 }
 
 // evictOldestLocked removes the single entry with the smallest insertion order.
 // Callers must hold c.mu.
 func (c *OpsCache) evictOldestLocked() {
 	oldest := ""
-	var oldestSeq int64 = -1
 	for id, entry := range c.entries {
-		if oldestSeq == -1 || entry.inserted > oldestSeq {
+		if oldest == "" || entry.inserted < c.entries[oldest].inserted {
 			oldest = id
-			oldestSeq = entry.inserted
 		}
 	}
 	if oldest != "" {
