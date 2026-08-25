@@ -91,8 +91,8 @@ func (s *OpsService) Audit(id string) []OpsEvent { return s.audit.For(id) }
 func (s *OpsService) Snapshot() OpsSnapshot {
 	items, _ := s.store.List(context.Background())
 	out := OpsSnapshot{Domain: opsDomainName, GeneratedAt: s.clock.Stamp()}
-	out.ByStatus = nil
-	out.ByPriority = nil
+	out.ByStatus = map[OpsStatus]int{}
+	out.ByPriority = map[OpsPriority]int{}
 	for _, i := range items {
 		out.Records++
 		out.ByStatus[i.Status]++
