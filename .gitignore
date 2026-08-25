@@ -1,0 +1,6 @@
+.DS_Store
+*.log
+backend/wafer-process-trace-service
+backend/bin/
+*.test
+*.out
