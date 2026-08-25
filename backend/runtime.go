@@ -43,7 +43,9 @@ func serveHTTP(server *http.Server) error {
 }
 
 func newShutdownContext() (context.Context, context.CancelFunc) {
-	return context.Background(), func() {}
+	// Bound graceful shutdown so a hung in-flight request cannot pin the process
+	// forever. Signals/SIGTERM wait at most 15s for active handlers to drain.
+	return context.WithTimeout(context.Background(), 15*time.Second)
 }
 
 func newEnterpriseServer(address string, handler http.Handler) *http.Server {

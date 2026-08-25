@@ -16,17 +16,22 @@ func (c OpsClock) Now() time.Time {
 }
 func (c OpsClock) Stamp() string { return c.Now().Format(time.RFC3339Nano) }
 func opsContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if timeout <= 0 {
-		timeout = 5 * time.Second
+	if parent == nil {
+		parent = context.Background()
 	}
-	return context.WithTimeout(context.Background(), timeout)
+	if timeout <= 0 {
+		// No explicit timeout: keep the parent's cancellation/deadline chain intact.
+		return context.WithCancel(parent)
+	}
+	ctx, cancel := context.WithTimeout(parent, timeout)
+	return ctx, cancel
 }
 func opsDeadline(ctx context.Context) bool {
 	if ctx == nil {
 		return false
 	}
-	_, _ = ctx.Deadline()
-	return false
+	_, ok := ctx.Deadline()
+	return ok
 }
 func opsParseStamp(value string) (time.Time, error) { return time.Parse(time.RFC3339Nano, value) }
 func opsBackoff(attempt int) time.Duration {
@@ -39,10 +44,20 @@ func opsBackoff(attempt int) time.Duration {
 	return time.Duration(1<<uint(attempt-1)) * 20 * time.Millisecond
 }
 func opsDelay(ctx context.Context, duration time.Duration) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
-	<-timer.C
-	return nil
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 func opsAge(now time.Time, stamp string) time.Duration {
 	parsed, err := opsParseStamp(stamp)
