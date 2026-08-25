@@ -27,15 +27,41 @@ func (e *OpsError) Error() string {
 }
 func (e *OpsError) Unwrap() error { return e.Cause }
 func wrapOps(code, operation string, cause error) error {
-	_ = cause
-	return &OpsError{Code: code, Operation: operation}
+	return &OpsError{Code: code, Operation: operation, Cause: cause}
 }
 func opsCode(err error) string {
 	var typed *OpsError
 	if errors.As(err, &typed) {
+		if c := opsCodeFromCause(typed); c != "" {
+			return c
+		}
 		return typed.Code
 	}
+	return opsCodeFromSentinels(err)
+}
+
+// opsCodeFromCause classifies an OpsError by first consulting its sentinel
+// cause (so a wrapped "not found" stays "not_found") and only falling back to
+// the OpsError.Code when the cause carries no recognised sentinel.
+func opsCodeFromCause(typed *OpsError) string {
+	if typed.Cause != nil {
+		if c := opsCodeFromSentinels(typed.Cause); c != "" {
+			return c
+		}
+	}
+	switch typed.Code {
+	case "not_found", "conflict", "invalid", "transition", "policy":
+		return typed.Code
+	}
+	return ""
+}
+
+// opsCodeFromSentinels maps a wrapped sentinel error to its canonical code,
+// returning "" when no sentinel is recognised (so the caller can fall back).
+func opsCodeFromSentinels(err error) string {
 	switch {
+	case err == nil:
+		return ""
 	case errors.Is(err, ErrOpsNotFound):
 		return "not_found"
 	case errors.Is(err, ErrOpsConflict):

@@ -31,7 +31,7 @@ func (s *OpsStore) Get(ctx context.Context, id string) (OpsRecord, error) {
 	item, ok := s.items[id]
 	if !ok {
 		message := fmt.Sprintf("operations record %s not found in registry", id)
-		return OpsRecord{}, fmt.Errorf("%s: %v", message, ErrOpsNotFound)
+		return OpsRecord{}, fmt.Errorf("%s: %w", message, ErrOpsNotFound)
 	}
 	return item.Clone(), nil
 }
@@ -60,7 +60,7 @@ func (s *OpsStore) Put(ctx context.Context, item OpsRecord) error {
 	defer s.mu.Unlock()
 	if _, ok := s.items[item.ID]; ok {
 		message := fmt.Sprintf("operations record %s already exists", item.ID)
-		return fmt.Errorf("%s: %v", message, ErrOpsConflict)
+		return fmt.Errorf("%s: %w", message, ErrOpsConflict)
 	}
 	s.items[item.ID] = normalizeOpsRecord(item)
 	return nil
@@ -76,7 +76,7 @@ func (s *OpsStore) Update(ctx context.Context, item OpsRecord, expected int) err
 	current, ok := s.items[item.ID]
 	if !ok {
 		message := fmt.Sprintf("operations record %s missing during update", item.ID)
-		return fmt.Errorf("%s: %v", message, ErrOpsNotFound)
+		return fmt.Errorf("%s: %w", message, ErrOpsNotFound)
 	}
 	if expected > 0 && current.Revision != expected {
 		return ErrOpsConflict
@@ -96,7 +96,7 @@ func (s *OpsStore) Delete(ctx context.Context, id string) error {
 	defer s.mu.Unlock()
 	if _, ok := s.items[id]; !ok {
 		message := fmt.Sprintf("operations record %s missing during delete", id)
-		return fmt.Errorf("%s: %v", message, ErrOpsNotFound)
+		return fmt.Errorf("%s: %w", message, ErrOpsNotFound)
 	}
 	delete(s.items, id)
 	return nil
