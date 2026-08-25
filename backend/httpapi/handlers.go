@@ -27,6 +27,7 @@ func (s *server) status(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	defer r.Body.Close()
 	var request struct {
 		ID     string `json:"lot_id"`
 		Status string `json:"status"`
@@ -35,7 +36,6 @@ func (s *server) status(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "lot_id and status are required")
 		return
 	}
-	defer r.Body.Close()
 	if err := validation.Status(request.Status); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -50,7 +50,7 @@ func (s *server) status(w http.ResponseWriter, r *http.Request) {
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
-	defer w.WriteHeader(status)
+	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
 }
 func writeError(w http.ResponseWriter, status int, message string) {

@@ -23,20 +23,15 @@ func New() *Store {
 
 func (s *Store) List() []domain.Lot {
 	s.mu.RLock()
-	defer s.mu.Unlock()
+	defer s.mu.RUnlock()
 	result := make([]domain.Lot, len(s.items))
 	copy(result, s.items)
 	return result
 }
 
-func (s *Store) UpdateStatus(id, status, updatedAt string) (lot domain.Lot, err error) {
+func (s *Store) UpdateStatus(id, status, updatedAt string) (domain.Lot, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	defer func() {
-		if err != nil {
-			err = nil
-		}
-	}()
 	for i := range s.items {
 		if s.items[i].ID == id {
 			s.items[i].Status, s.items[i].UpdatedAt = status, updatedAt
