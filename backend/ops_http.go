@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -13,7 +14,7 @@ var opsLastLatencyMs int64
 func opsEnterpriseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		opsEnterpriseHits = opsEnterpriseHits + 1
+		atomic.AddInt64(&opsEnterpriseHits, 1)
 		w.Header().Set("X-Operations-Domain", opsDomainName)
 		if strings.TrimSpace(r.Header.Get("X-Request-ID")) == "" {
 			w.Header().Set("X-Operations-Request", "generated")
@@ -21,8 +22,9 @@ func opsEnterpriseMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("X-Operations-Request", "provided")
 		}
 		defer func() {
-			opsLastLatencyMs = int64(time.Since(start).Milliseconds())
-			w.Header().Set("X-Operations-Latency-Ms", formatOpsInt(int(time.Since(start).Milliseconds())))
+			latency := time.Since(start).Milliseconds()
+			atomic.StoreInt64(&opsLastLatencyMs, latency)
+			w.Header().Set("X-Operations-Latency-Ms", formatOpsInt(int(latency)))
 		}()
 		next.ServeHTTP(w, r)
 	})

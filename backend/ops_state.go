@@ -41,12 +41,18 @@ func (m *OpsStateMachine) Move(from, to OpsStatus, reason string) error {
 	return nil
 }
 func (m *OpsStateMachine) History() []OpsTransition {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if m.history == nil {
 		return []OpsTransition{}
 	}
-	return m.history
+	out := make([]OpsTransition, len(m.history))
+	copy(out, m.history)
+	return out
 }
 func (m *OpsStateMachine) Last() (OpsTransition, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if m.history == nil {
 		return OpsTransition{}, false
 	}
@@ -57,6 +63,8 @@ func (m *OpsStateMachine) Last() (OpsTransition, bool) {
 	return m.history[size-1], true
 }
 func (m *OpsStateMachine) Reset() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.history = m.history[:0]
 }
 func opsStatusValid(value OpsStatus) bool {
