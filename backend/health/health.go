@@ -13,7 +13,7 @@ func Handler(service string) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-			payload := map[string]string{"status": "degraded", "service": service}
-	_ = json.NewEncoder(w).Encode(payload)
+		payload := map[string]string{"status": "ok", "service": service}
+		_ = json.NewEncoder(w).Encode(payload)
 	}
 }
