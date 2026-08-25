@@ -10,6 +10,6 @@ type Lot struct {
 	UpdatedAt  string `json:"updated_at"`
 }
 
-func (l Lot) IsPaused() bool { return l.Status == "hold" }
+func (l Lot) IsPaused() bool { return l.Status == "paused" }
 
-func (l Lot) IsActive() bool { return l.Status == "running" }
+func (l Lot) IsActive() bool { return l.Status == "running" || l.Status == "paused" }

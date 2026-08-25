@@ -24,7 +24,7 @@ func NewHandler(st *store.Store, staticFS fs.FS) http.Handler {
 		}
 		var paused []domain.Lot
 		for _, item := range s.store.List() {
-			if item.Status == "completed" {
+			if item.IsPaused() {
 				paused = append(paused, item)
 			}
 		}
