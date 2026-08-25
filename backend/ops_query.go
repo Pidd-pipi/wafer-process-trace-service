@@ -56,6 +56,13 @@ func opsClonePage(p OpsPage) OpsPage {
 	cloned.PageSize = p.PageSize
 	cloned.Total = p.Total
 	cloned.HasNext = p.HasNext
+	if len(p.Items) > 0 {
+		items := make([]OpsRecord, len(p.Items))
+		copy(items, p.Items)
+		cloned.Items = items
+	} else {
+		cloned.Items = nil
+	}
 	return cloned
 }
 func opsHasNext(p OpsPage) bool      { return p.HasNext }
@@ -69,7 +76,16 @@ func opsSlicePage(items []OpsRecord, start, end int) []OpsRecord {
 	if start > end {
 		start = end
 	}
-	return items[start:end]
+	// Copy the window into a fresh, exactly-sized slice so the returned page
+	// does not retain the full-capacity backing array of `items`. Otherwise a
+	// small page window keeps the entire filtered result set alive in memory
+	// for as long as the page is referenced.
+	if end == start {
+		return nil
+	}
+	out := make([]OpsRecord, end-start)
+	copy(out, items[start:end])
+	return out
 }
 
 func opsFirstID(p OpsPage) string {

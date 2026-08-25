@@ -65,7 +65,7 @@ func (s *OpsService) Search(ctx context.Context, q OpsQuery) (OpsPage, error) {
 	sortOpsRecords(filtered)
 	q = opsQueryDefaults(q)
 	start, end := opsBounds(len(filtered), q.Page, q.PageSize)
-	return OpsPage{Items: filtered[start:end], Page: q.Page, PageSize: q.PageSize, Total: len(filtered), HasNext: end < len(filtered)}, nil
+	return OpsPage{Items: opsSlicePage(filtered, start, end), Page: q.Page, PageSize: q.PageSize, Total: len(filtered), HasNext: end < len(filtered)}, nil
 }
 func (s *OpsService) Transition(ctx context.Context, id string, expected int, target OpsStatus, actor string) (OpsRecord, error) {
 	ctx, cancel := opsContext(ctx, 3*time.Second)
